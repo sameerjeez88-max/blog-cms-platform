@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CMS Admin — DevPulse Blog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-lg">CMS</div>
+        <span class="text-lg font-bold tracking-wider">Admin Publishing Portal</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <a href="/index.html" class="text-xs font-semibold text-slate-400 hover:text-white">View Blog Feed</a>
+        <span class="text-xs bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full font-medium">Rana Yasir Mahy Ud Din</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-5xl mx-auto px-6 py-10 flex-grow w-full">
+    <div class="text-center mb-10">
+      <h1 class="text-3xl font-extrabold tracking-tight mb-2">CMS Article Manager</h1>
+      <p class="text-slate-400 text-sm max-w-lg mx-auto">Create new blog posts or delete existing publications instantly.</p>
+    </div>
+
+    <!-- Create Post Form Card -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl mb-10">
+      <h2 class="text-lg font-bold mb-4 text-indigo-400">✍️ Publish New Article</h2>
+      <form id="cms-form" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Article Title</label>
+            <input type="text" id="title" required placeholder="e.g. Advanced Node.js Architecture" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Category</label>
+            <input type="text" id="category" required placeholder="e.g. Backend, UI/UX, DevOps" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Content Body</label>
+          <textarea id="content" rows="5" required placeholder="Write your full article content here..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-600/20 text-sm">
+          Publish Article
+        </button>
+      </form>
+      <div id="msg" class="mt-3 text-xs text-center hidden"></div>
+    </div>
+
+    <!-- Posts Directory Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <h2 class="text-lg font-bold mb-4 border-b border-slate-800 pb-3">Published Articles Directory</h2>
+      <div id="admin-posts-list" class="space-y-3">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 bg-slate-900/40 py-6 text-center text-xs text-slate-500">
+    © 2026 Rana Yasir Mahy Ud Din • RESTful Blogging Platform & CMS API
+  </footer>
+
+  <script>
+    async function fetchAdminPosts() {
+      try {
+        const res = await fetch('/api/posts');
+        const json = await res.json();
+        if (json.success) {
+          renderAdminPosts(json.data);
+        }
+      } catch (err) {
+        console.error('Error fetching admin posts:', err);
+      }
+    }
+
+    function renderAdminPosts(posts) {
+      const list = document.getElementById('admin-posts-list');
+      if (posts.length === 0) {
+        list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No articles found.</p>`;
+        return;
+      }
+
+      list.innerHTML = posts.map(p => `
+        <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800 flex justify-between items-center text-sm">
+          <div class="overflow-hidden pr-4">
+            <h4 class="font-bold text-sm truncate">${p.title}</h4>
+            <div class="flex items-center space-x-3 text-xs text-slate-400 mt-1">
+              <span class="text-indigo-400 font-semibold">${p.category}</span>
+              <span>•</span>
+              <span>Published: ${p.publishedAt}</span>
+              <span>•</span>
+              <span>Comments: ${p.comments.length}</span>
+            </div>
+          </div>
+          <button onclick="deletePost(${p.id})" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex-shrink-0">Delete</button>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('cms-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('title').value;
+      const category = document.getElementById('category').value;
+      const content = document.getElementById('content').value;
+      const msg = document.getElementById('msg');
+
+      try {
+        const res = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, category, content })
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          msg.innerText = '✅ Article published successfully!';
+          msg.classList.remove('hidden', 'text-red-400');
+          msg.classList.add('text-emerald-400');
+          document.getElementById('cms-form').reset();
+          fetchAdminPosts();
+        } else {
+          msg.innerText = '❌ ' + json.message;
+          msg.classList.remove('hidden', 'text-emerald-400');
+          msg.classList.add('text-red-400');
+        }
+      } catch (err) {
+        msg.innerText = '❌ Failed to publish article.';
+        msg.classList.remove('hidden', 'text-emerald-400');
+        msg.classList.add('text-red-400');
+      }
+    });
+
+    async function deletePost(id) {
+      if (!confirm('Are you sure you want to delete this article?')) return;
+      try {
+        const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (json.success) {
+          fetchAdminPosts();
+        } else {
+          alert(json.message);
+        }
+      } catch (err) {
+        alert('Failed to delete post.');
+      }
+    }
+
+    fetchAdminPosts();
+  </script>
+</body>
+</html>
